@@ -2,8 +2,10 @@
 #pragma config(Sensor, dgtl1,  touchTop,       sensorTouch)
 #pragma config(Sensor, dgtl2,  touchBottom,    sensorTouch)
 #pragma config(Sensor, dgtl3,  touchArm,       sensorTouch)
+#pragma config(Sensor, dgtl4,  redLED,         sensorDigitalOut)
+#pragma config(Sensor, dgtl5,  greenLED,       sensorDigitalOut)
 #pragma config(Motor,  port2,           arm1,          tmotorServoContinuousRotation, openLoop)
-#pragma config(Motor,  port3,           grip1,         tmotorServoStandard, openLoop)
+#pragma config(Motor,  port3,           grip1,         tmotorServoStandard, openLoop, reversed)
 #pragma config(Motor,  port4,           grip2,         tmotorServoStandard, openLoop)
 #pragma config(Motor,  port5,           drive1,        tmotorServoContinuousRotation, openLoop, reversed)
 #pragma config(Motor,  port6,           drive2,        tmotorServoContinuousRotation, openLoop)
@@ -15,7 +17,7 @@ float mArm = 0;
 float sGripL = 0;
 float sGripR = 0;
 int joy2 = 0;
-float joy2a = 0;
+float joy2a = 0; //second var needed because floating integer math won't work in lines with vexRT
 int joy3 = 0;
 int potIn = 0;
 float armPos = 0;
@@ -23,15 +25,30 @@ const float pK = 7;
 float error = 0;
 float potMult = -.32;
 int mRope = 0;
+int hold = 0;
+
+task leds()
+{
+	while(true)
+		{
+			SensorValue(redLED) = 1;
+			SensorValue(greenLED) = 0;
+			wait1Msec(500);
+			SensorValue(redLED) = 0;
+			SensorValue(greenLED) = 1;
+			wait1Msec(500);
+		}
+}
 
 task main()
 {
-	potIn = (SensorValue(pot) / potMult) + 127;
+	StartTask(leds);
+	potIn = (SensorValue(pot) / potMult) + 127; //this is to read the position of the arm before we move it
 	armPos = potIn;
 	while(true)
 		{
-			potIn = (SensorValue(pot) / potMult) + 127;
-			if((vexRT[Ch2] > -10) && (vexRT[Ch2] < 10))
+			potIn = (SensorValue(pot) / potMult) + 127; //average the potentiometer's input so it has the same range as the motor
+			if(abs(vexRT[Ch2]) < 10) //start of joystick value cutting
 				{
 					joy2 = 0;
 				}
@@ -39,15 +56,15 @@ task main()
 				{
 					joy2 = vexRT[Ch2];
 				}
-			if((vexRT[Ch3] > -10) && (vexRT[Ch3] < 10))
+			if(abs(vexRT[Ch3]) < 10)
 				{
 					joy3 = 0;
 				}
 			else
 				{
-					joy3 = vexRT[Ch3];
+					joy3 = vexRT[Ch3]; //end joystick value cutting
 				}
-			if((SensorValue(touchBottom) == 1) && (joy3 <= 0))
+			if((SensorValue(touchBottom) == 1) && (joy3 <= 0)) //for future implementation of touch sensors
 				{
 					joy3 = 0;
 				}
@@ -59,9 +76,11 @@ task main()
 				{
 					joy2 = 0;
 				}
-			mDrive = ((mDrive * 19) + joy3) / 20;
+			if(vexRT[Btn7L] == 1) { hold = 30; }
+			if(vexRT[Btn7D] == 1) { hold = 0; }
+			mDrive = ((mDrive * 19) + joy3) / 20; //exponential averaging
 			joy2a = ((joy2a * 9) + joy2) / 10;
-			if(vexRT[Btn6D] == 1)
+			if(vexRT[Btn6D] == 1) //button controls for the grippers
 				{
 					sGripL = -60;
 				}
@@ -77,7 +96,7 @@ task main()
 				{
 					sGripR = 120;
 				}
-			if(vexRT[Btn8U] == 1)
+			if(vexRT[Btn8U] == 1) //button controls for the winch motor
 				{
 					mRope = 127;
 				}
@@ -89,6 +108,7 @@ task main()
 				{
 					mRope = 0;
 				}
+
 			//proportional loop
 				armPos += (joy2a / 300);
 				if(armPos > 135) { armPos = 135; }
@@ -97,12 +117,12 @@ task main()
 				mArm = error * pK;
 				if(joy2a > 20)
 					{
-						if(error > 30) {armPos = potIn + 30; }
+						if(error > 30) {armPos = potIn + 30; } //keep the projected position within 30 of the actual position while moving up
 					}
 				//if(error < -30) {armPos = potIn - 30; }
 			//end loop
-			motor[drive1] = mDrive;
-			motor[drive2] = mDrive;
+			motor[drive1] = mDrive + hold; //powering all the motors according to their variables
+			motor[drive2] = mDrive + hold;
 			motor[arm1] = mArm;
 			motor[grip1] = sGripL;
 			motor[grip2] = sGripR;
