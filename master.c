@@ -30,8 +30,6 @@ int mRope = 0;
 int hold = 30;
 float sTrack = 0;
 int sBottle = 0;
-int mapa[4];
-int mapb[4];
 
 task leds()
 {
@@ -82,8 +80,8 @@ task main()
 				{
 					joy2 = 0;
 				}
-			if(vexRT[Btn7U] == 1) { hold = 30; } //gear motor lock toggle
-			if(vexRT[Btn7R] == 1) { hold = 0; }
+			if(vexRT[Btn7U] == 1 && vexRT[Btn7L] == 1) { hold = 30; } //gear motor lock toggle
+			if(vexRT[Btn7R] == 1 && vexRT[Btn7D] == 1) { hold = 0; }
 			mDrive = ((mDrive * 19) + joy3) / 20; //exponential averaging
 			joy2a = ((joy2a * 9) + joy2) / 10;
 			if(vexRT[Btn6U] == 1) //button controls for the grippers
@@ -102,43 +100,12 @@ task main()
 				{
 					sGripR = 120;
 				}
-			if(vexRT[Btn8U] == 1) //button controls for the winch motor
-				{
-					mRope = 127;
-				}
-			if(vexRT[Btn8D] == 1)
-				{
-					mRope = -128;
-				}
-			if(vexRT[Btn8U] == 0 && vexRT[Btn8D] == 0)
-				{
-					mRope = 0;
-				}
-
-			if(vexRT[Btn8R] == 1)
-			{
-				mapb[0] = 0;
-				mapb[1] = 1;
-				mapb[2] = 2;
-				mapb[3] = 3;
-			}
-			if(vexRT[Btn8L] == 1)
-			{
-				mapb[0] = 3;
-				mapb[1] = 2;
-				mapb[2] = 1;
-				mapb[3] = 0;
-			}
-			mapa[0] = vexRT[Btn7L];
-			mapa[1] = vexRT[Btn7D];
-			mapa[2] = vexRT[Btn8U];
-			mapa[3] = vexRT[Btn8D];
-			sTrack = sTrack + (mapa[mapb[0]] * .75);
-			sTrack = sTrack + (mapa[mapb[1]] * -.75);
+			sTrack = sTrack + (vexRT[Btn8L] * .75);
+			sTrack = sTrack + (vexRT[Btn8D] * -.75);
 			if(sTrack > 127) { sTrack = 127; }
 			if(sTrack < -128) { sTrack = -128; }
-			if(mapa[mapb[2]] == 1) { sBottle = 100; }
-			if(mapa[mapb[3]] == 1) { sBottle = -100; }
+			if(vexRT[Btn8U] == 1) { sBottle = 100; }
+			if(vexRT[Btn8R] == 1) { sBottle = -100; }
 
 			//proportional loop
 				armPos += (joy2a / 300); //number changes speed of arm movement
