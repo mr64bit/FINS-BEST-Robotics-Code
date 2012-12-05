@@ -25,7 +25,7 @@ int potIn = 0;
 float armPos = 0;
 const float pK = 7;
 float error = 0;
-float potMult = -.32;
+float potMult = 3.8;
 int mRope = 0;
 int hold = 30;
 float sTrack = 0;
@@ -47,11 +47,11 @@ task leds()
 task main()
 {
 	StartTask(leds);
-	potIn = (SensorValue(pot) / potMult) + 127; //this is to read the position of the arm before we move it
-	armPos = potIn;
+	potIn = (SensorValue(pot) - 40) * potMult; //this is to read the position of the arm before we move it
+	armPos = potIn; //so the arm stays still until you want to move it
 	while(true)
 		{
-			potIn = (SensorValue(pot) / potMult) + 127; //average the potentiometer's input so it has the same range as the motor
+			potIn = (SensorValue(pot) - 40) * potMult; //average the potentiometer's input so it has the same range as the motor
 			if(abs(vexRT[Ch2]) < 10) //start of joystick value cutting
 				{
 					joy2 = 0;
@@ -100,25 +100,33 @@ task main()
 				{
 					sGripR = 120;
 				}
-			sTrack = sTrack + (vexRT[Btn8L] * .75);
+			sTrack = sTrack + (vexRT[Btn8L] * .75); //control sliding track servo
 			sTrack = sTrack + (vexRT[Btn8D] * -.75);
-			if(sTrack > 127) { sTrack = 127; }
+			if(sTrack > 127) { sTrack = 127; } //make sure the servo is within it's range
 			if(sTrack < -128) { sTrack = -128; }
-			if(vexRT[Btn8U] == 1) { sBottle = 100; }
+			if(vexRT[Btn8U] == 1) { sBottle = 100; } //toggle arm for bottle grabbing
 			if(vexRT[Btn8R] == 1) { sBottle = -100; }
 
-			//proportional loop
-				armPos += (joy2a / 300); //number changes speed of arm movement
-				if(armPos > 135) { armPos = 135; }
-				if(armPos < 0) { armPos = 0; }
-				error = armPos - potIn;
-				mArm = error * pK;
-				if(joy2a > 20)
-					{
-						if(error > 30) {armPos = potIn + 30; } //keep the projected position within 30 of the actual position while moving up
-					}
-				//if(error < -30) {armPos = potIn - 30; }
-			//end loop
+			if(SensorValue(pot) <= 200)
+			{
+				//proportional loop
+					armPos += (joy2a / 300); //number changes speed of arm movement
+					if(armPos > 120) { armPos = 120; }
+					if(armPos < 0) { armPos = 0; }
+					error = armPos - potIn;
+					mArm = error * pK;
+					if(joy2a > 20)
+						{
+							if(error > 30) {armPos = potIn + 30; } //keep the projected position within 30 of the actual position while moving up
+						}
+				}
+					//if(error < -30) {armPos = potIn - 30; }
+				//end loop
+			if(SensorValue(pot) >= 199)
+			{
+				mArm = joy2a;
+			}
+
 			motor[drive1] = -mDrive - hold; //powering all the motors according to their variables
 			motor[drive2] = mDrive + hold;
 			motor[arm1] = mArm;
