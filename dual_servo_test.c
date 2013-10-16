@@ -24,8 +24,8 @@ task main()
 				tmpR = vexRT[Ch2];
 				if((tmpL > -10) && tmpL < 10) { tmpL = 0; }
 				if((tmpR > -10) && tmpR < 10) { tmpR = 0; }
-				left = left + (tmpL / 10);
-				right = right + (tmpR / -10);
+				left = left + (tmpL / 100);
+				right = right + (tmpR / -100);
 				i = .4 + .5;
 				//left = left + (vexRT[Ch2] / 100);
 				//right = right + (vexRT[Ch2] / -100);
